@@ -1,0 +1,37 @@
+<script type=text/javascript>
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    var data = {
+      data: JSON.stringify({
+                        "value":'asdf'
+                    })
+   }
+};
+    function ajaxForm(){
+    $.ajax({
+    type: 'post',
+    url: $SCRIPT_ROOT,
+    dataType: 'json',
+    data:data,
+    error: function(xhr, err){
+    alert('请求失败，原因可能是：' + err + '！')
+    },
+    success: function(data, textStatus){
+    $('#max').text(data.max);
+    $('#min').text(data.min);
+    }
+    });
+    return false
+    }
+</script>
+    <body>
+    <h1>ajax Example</h1>
+    <form action="" method="post"onSubmit="return ajaxForm()">
+    <p>在下面 3 个文本框中输入数字，然后点击按钮。p>
+    <input name="n1"type="text"/>
+    <input name="n2"type="text"/>
+    <input name="n3"type="text"/>
+    <input type="submit"/>
+    <p>最大数：<span id=max>?</span>p>
+    <p>最小数：<span id=min>?</span>p>
+    </form>
+    </body>

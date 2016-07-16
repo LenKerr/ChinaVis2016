@@ -1,0 +1,125 @@
+{% extends "bootstrap/base.html" %}
+{% block head %}
+    {{ super() }}
+    <script type="text/css" rel="stylesheet" src = "../static/css/bootstrap.css"></script>
+    <script type="text/javascript" src="../static/vis.js"></script>
+    <link type="text/css" rel="stylesheet" href="../static/vis.css">
+    <script src="../static/net10to10New.js"></script>
+    <script src="../static/googleAnalytics.js"></script>
+    <style type = "text/css">
+        header,footer,nav,section,aside,article,p {
+            border:1px dotted black;
+            border-radius: 5px;
+        }
+        body{
+            padding: 50px;
+        }
+        a, a:hover{
+            text-decoration: none;
+        }
+
+        #mynetwork{
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div >
+        <div class = "row">
+             <div id = "mynetwork" class = "col-md-12"></div>
+        </div>
+        <p>
+           <button id = "location" class = "btn btn-default" style="margin-top: 5px">submit coordinates</button>
+        </p>
+
+
+    </div>
+
+    {% block scripts %}
+    <script type="text/javascript">
+            var network;
+            function redrawAll() {
+                // remove positoins
+                for (var i = 0; i < nodes.length; i++) {
+                    delete nodes[i].x;
+                    delete nodes[i].y;
+                }
+
+                // create a network
+                var container = document.getElementById('mynetwork');
+                var data = {
+                    nodes: nodes,
+                    edges: edges
+                };
+                var options = {
+                    nodes: {
+                        shape: 'dot',
+                        scaling: {
+                            min: 10,
+                            max: 30
+                        },
+                        font: {
+                        size: 10,
+                        face: 'Tahoma'
+                        }
+                    },
+                    edges: {
+                        width: 0.15,
+                        color: {inherit:'from'},
+                        smooth: {
+                            type: 'continuous'
+                        }
+                    },
+                    physics: {
+                        stabilization: false,
+                        barnesHut: {
+                            springConstant: 0.001,
+                            springLength: 1500,
+                            avoidOverlap: 1
+                        }
+                    },
+                    interaction: {
+                        tooltipDelay: 200,
+                        hideEdgesOnDrag: true
+                    }
+                };
+
+                // Note: data is coming from ./datasources/WorldCup2014.js
+                network = new vis.Network(container, data, options);
+            }
+        redrawAll()
+        //console.log(network["body"].nodes)
+    </script>
+    <script src = "../static/jquery-1.12.3.min.js"></script>
+    <script src = "../static/js/bootstrap.min.js"></script>
+    <script type = "text/javascript">
+        //console.log(network["body"].nodes)
+        var $SCRIPT_ROOT = {{request.script_root|tojson|safe}};
+        $(function() {
+            function submit_form(e) {
+                var locationnodes = network["body"].nodes
+                //console.log(network)
+                var location = []
+                var arr = Object.keys(locationnodes)
+                //console.log(arr.length)
+                for(var i =0;i<arr.length;i++)
+                {
+                    location.push({"x":locationnodes[i].x,"y":locationnodes[i].y})
+                }
+                console.log(location)
+                $.getJSON('/add', {
+                            data: JSON.stringify(location)
+                        },
+                        function (data) {
+                            alert(data.result)
+                        });
+            };
+            $("#location").bind("click", submit_form);
+        });
+
+    </script>
+    {% endblock %}
+{% endblock %}

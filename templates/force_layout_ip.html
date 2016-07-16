@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link type="text/css" rel ="stylesheet" href="../static/css/bootstrap.min.css">
+    <script type="text/javascript" src="../static/jquery-1.12.3.min.js"></script>
+    <style type="text/css">
+
+        circle.node {
+            cursor: pointer;
+        }
+
+        #mainframe{
+            border: 1px solid lightgray;
+        }
+
+
+    </style>
+</head>
+<body bgcolor="white">
+<div class="container">
+    <div class="row">
+        <div id="mainframe" class="col-md-12" style="margin-top:10px"></div>
+    </div>
+    <p>
+        <button id = "location" class = "btn btn-default" style="margin-top: 5px">submit coordinates</button>
+    </p>
+</div>
+<script type="text/javascript" src="../static/d3.min.js"></script>
+<script type="text/javascript">
+    var w = $("#mainframe").width();
+    var h = 600;
+
+    var drags;
+
+    var force = d3.layout.force()
+            .on("tick", tick)
+            .charge(-300)
+            .chargeDistance(1000)
+            .linkDistance(100)
+            .size([w, h])
+            .friction(0.3);
+
+    var drag = force.drag()
+            .on("dragstart", dragstart);
+
+    var zoom = d3.behavior.zoom()
+            .scaleExtent([0.1,10])
+            .on("zoom",function(d){
+                d3.select(this).attr(
+                        "scale(" +d3.event.scale +")");
+            });
+
+    var vis = d3.select("#mainframe")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h)
+            .append("g")
+            .call(zoom);
+
+    var circles = vis.selectAll(".forcenode");
+    var lines = vis.selectAll(".forcelink ");
+
+    d3.json("../static/net192to172.json", function(error,data) {
+        node = data.nodes;
+        link = data.edges;
+        //console.log(node)
+        //console.log(link)
+        update();
+        console.log(node)
+    });
+
+
+
+    function update() {
+        force
+                .nodes(node)
+                .links(link)
+                .linkStrength(1)
+                .start();
+        
+
+        function dragstart(d) {
+            d.fixed = true;
+        }
+
+        circles = vis.selectAll(".forcenode")
+                .data(node)
+
+        circles.enter().append("circle")
+                .attr("class", "forcenode")
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; })
+                .attr("r", function(d) { return 5; })
+                .style("fill",function(d){return d.color;})
+                .style("opacity",function(d){return d.opacity;})
+                .on("click",click)
+                .on("dblclick",dblclick)
+                .call(drag);
+
+
+        //circles.exit().remove();
+
+        lines = vis.selectAll(".forcelink")
+                .data(link);
+
+        lines.enter().append("line")
+                .attr("class","forcelink")
+                .attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; })
+                .style("stroke", function (d) {
+                    return d.color;
+                })
+                .style("opacity",function(d){return d.opacity;})
+                .style("stroke-width",0.5);
+
+        //lines.exit().remove();
+
+        texts = vis.selectAll(".forcetext")
+                .data(node);
+
+        texts.enter().append("text")
+                .attr("class","forcetext")
+                .attr("x",function(d){return d.x;})
+                .attr("y",function(d){return d.y;})
+                .attr("dy",".1em")
+                .text(function(d){
+                    return d.name;
+                })
+                .style("font-size","1")
+                .attr("display",function(d){return d.display;})
+
+
+    }
+
+    function tick() {
+        //对图形元素进行修改，与d相关，d是node和link
+        circles.attr("cx", function(d) {
+                    if(d.x<10)return 20-d.x;
+                    if(d.x>w-10)return 2*w-20-d.x;
+                    return d.x; })
+                .attr("cy", function(d) {
+                    if(d.y<20)return 40-d.y;
+                    if(d.y>h-20)return 2*h-40-d.y;
+                    return d.y; });
+
+        lines.attr("x1", function(d) {
+                    if(d.source.x<10)return 20-d.source.x;
+                    if(d.source.x>w-10)return 2*w-20-d.source.x;
+                    return d.source.x; })
+                .attr("y1", function(d) {
+                    if(d.source.y<20)return 40-d.source.y;
+                    if(d.source.y>h-20)return 2*h-40-d.source.y;
+                    return d.source.y; })
+                .attr("x2", function(d) {
+                    if(d.target.x<10)return 20-d.target.x;
+                    if(d.target.x>w-10)return 2*w-20-d.target.x;
+                    return d.target.x; })
+                .attr("y2", function(d) {
+                    if(d.target.y<20)return 40-d.target.y;
+                    if(d.target.y>h-20)return 2*h-40-d.target.y;
+                    return d.target.y; })
+                .style("stroke", function (d) {
+                    return d.color;
+                })
+                .style("opacity",function(d){return d.opacity});
+
+
+        texts.attr("x",function(d){if(d.x<10)return 20-d.x;
+                    if(d.x>w-10)return 2*w-20-d.x;
+                    return d.x;})
+                .attr("y",function(d){if(d.y<20)return 40-d.y;
+                    if(d.y>h-20)return 2*h-40-d.y;
+                    return d.y;})
+                .attr("display",function(d){return d.display;})
+    }
+
+    function click(d) {
+        d3.select(this).attr("cx", function(d) {
+            if(d.x<0)return -d.px;
+            if(d.x>w)return 2*w-d.px;
+            return d.px; })
+        d3.select(this).attr("cy", function(d) {
+            if(d.y<0)return -d.py;
+            if(d.y>h)return 2*h-d.py;
+            return d.py; });
+        if(d.focus == "True"){
+            d.focus = "False"
+        }
+        else{
+            d.focus = "True";
+        }
+        if(d.focus == "True"){
+            d._color = d.color
+            d3.select(this).style("fill","yellow");
+
+            //这样访问连线
+            for (var i in link){
+                if (link[i]['source'].name == d.name ){
+                    link[i]['_color'] = link[i]['color']
+                    link[i]['color'] = "black";
+                    link[i]['_opacity'] = link[i]['opacity']
+                    link[i]['opacity'] = 1
+                    //console.log("target",link[i]['target'].name);
+                }
+                if (link[i]['target'].name == d.name){
+                    link[i]['_color'] = link[i]['color']
+                    link[i]['color'] = "black";
+                    link[i]['_opacity'] = link[i]['opacity']
+                    link[i]['opacity'] = 1
+                    //console.log("source",link[i]['source'].name);
+                }
+            }
+
+
+        }
+        else{
+            d3.select(this).style("fill",function(d){
+                d.color = d._color;
+                return d.color;
+            });
+
+            for (var i in link){
+                if (link[i]['source'].name == d.name || link[i]['target'].name == d.name){
+                    //console.log(i,link[i]['color']);
+                    link[i]['color'] = link[i]['_color']
+                    link[i]['opacity'] = link[i]['_opacity']
+                }
+            }
+        }
+        update();
+    }
+
+    function dragstart(d) {
+        d3.select(this).classed("fixed", d.fixed = true);
+    }
+
+    function dblclick(d) {
+        d3.select(this).classed("fixed", d.fixed = false);
+    }
+
+    $(function(){
+        function submit_form(e) {
+            console.log(circles);
+
+            $.getJSON('/data', {
+                        data:JSON.stringify(circles)
+                    },
+                    function (data) {
+                        alert(data.result)
+                    });
+        };
+        $("#location").bind("click", submit_form);
+    });
+</script>
+
+
+<script type="text/javascript" src="../static/js/bootstrap.min.js"></script>
+</body>
+</html>
