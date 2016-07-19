@@ -38,7 +38,7 @@ def getvcpdata():
     for j in range(1,10):
         one = []
         for raw in raws:
-            one.append([raw[0],raw[j]])
+            one.append([raw[0]+8*3600000,raw[j]])
         ones.append(one)
     #return "%s(%s);" % (request.args.get('callback'), json.dumps(ones))
     #callback方法把json对象
@@ -47,7 +47,7 @@ def getvcpdata():
 @app.route("/flowip",methods=["GET"])
 def getflowipdata():
     c.execute("select time,sum(flow) from flowip group by time order by time")
-    ones = [[i[0],int(i[1])] for i in c.fetchall()]
+    ones = [[i[0]+8*3600000,int(i[1])] for i in c.fetchall()]
     return json.dumps(ones)
 
 @app.route("/vcptime",methods=["GET"])
@@ -58,18 +58,30 @@ def getvcptimedata():
     ones = []
     for raw in raws:
         c.execute("select time,filelen from vcptype where vpi1 = "+str(raw[0])+" and vci1 = "+str(raw[1])+" order by timeid,VPI1,VCI1")
-        one = [[i[0],i[1]] for i in c.fetchall()]
+        one = [[i[0]+8*3600000,i[1]] for i in c.fetchall()]
         ones.append(one)
     c.execute("select time,sum(flow) from flowip group by time order by time")
-    ones.append([[i[0],int(i[1])] for i in c.fetchall()])
+    ones.append([[i[0]+8*3600000,int(i[1])] for i in c.fetchall()])
     return json.dumps(ones)
 
 @app.route("/ipsdistributewithtime",methods=["GET"])
 def ipsdistributedata():
     time = request.args.get("time")
-    sql = "select srcid as id from select srcid from flowip where time = "+ str(time)+\
+    sql = "select srcid as id from ((select srcid from flowip where time = "+ str(time)+\
         ") union (select dstipid from flowip where time = "+str(time)+" )) a"
-    #print sql
+    print sql
+    c.execute(sql)
+    ones = [i[0] for i in c.fetchall()]
+    #print ones
+    return json.dumps(ones)
+
+@app.route("/ipsdistributewithperiod",methods=["GET"])
+def ipsdistributewithperiod():
+    starttime = request.args.get("starttime")
+    stoptime = request.args.get("stoptime")
+    sql = "select srcid as id from ((select srcid from flowip where time >= "+ str(starttime)+\
+        " and time <= "+str(stoptime)+") union (select dstipid from flowip where time >= "+str(starttime)+" and time <= "+str(stoptime)+" )) a"
+    print sql
     c.execute(sql)
     ones = [i[0] for i in c.fetchall()]
     #print ones
